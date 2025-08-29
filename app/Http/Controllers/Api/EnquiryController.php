@@ -1,8 +1,10 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Enquiry;
+use App\Models\EnquiryInteraction;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -16,8 +18,8 @@ class EnquiryController extends Controller
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('customer_name', 'like', "%{$request->search}%")
-                  ->orWhere('email', 'like', "%{$request->search}%")
-                  ->orWhere('phone', 'like', "%{$request->search}%");
+                    ->orWhere('email', 'like', "%{$request->search}%")
+                    ->orWhere('phone', 'like', "%{$request->search}%");
             });
         }
 
@@ -44,10 +46,10 @@ class EnquiryController extends Controller
             'customerName' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
-            'source' => ['required', Rule::in(['website','google_ads','meta','referral','walk_in','other'])],
+            'source' => ['required', Rule::in(['website', 'google_ads', 'meta', 'referral', 'walk_in', 'other'])],
             'utmData' => 'nullable|array',
             'assignedAgent' => 'nullable|string',
-            'status' => ['required', Rule::in(['new','contacted','in_progress','closed_won','closed_lost','spam'])],
+            'status' => ['required', Rule::in(['new', 'contacted', 'in_progress', 'closed_won', 'closed_lost', 'spam'])],
             'notes' => 'nullable|string',
         ]);
 
@@ -74,12 +76,52 @@ class EnquiryController extends Controller
             'customerName' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|max:255',
             'phone' => 'sometimes|string|max:50',
-            'source' => ['sometimes', Rule::in(['website','google_ads','meta','referral','walk_in','other'])],
+            'source' => ['sometimes', Rule::in(['website', 'google_ads', 'meta', 'referral', 'walk_in', 'other'])],
             'utmData' => 'sometimes|array',
             'assignedAgent' => 'sometimes|string',
-            'status' => ['sometimes', Rule::in(['new','contacted','in_progress','closed_won','closed_lost','spam'])],
+            'status' => ['sometimes', Rule::in(['new', 'contacted', 'in_progress', 'closed_won', 'closed_lost', 'spam'])],
             'notes' => 'sometimes|string',
         ]);
+
+
+        // 🟢 If assignedAgent changed, log an interaction
+        if ($request->has('assignedAgent')) {
+            $previousAgentId = $enquiry->assigned_agent;
+            $newAgentId = $request->assignedAgent;
+
+            // Fetch agent names (fallback to ID if not found)
+            $previousAgent = $previousAgentId
+                ? \App\Models\User::find($previousAgentId)?->name ?? "Agent {$previousAgentId}"
+                : null;
+
+            $newAgent = $newAgentId
+                ? \App\Models\User::find($newAgentId)?->name ?? "Agent {$newAgentId}"
+                : null;
+
+            // Build title
+            if ($previousAgent && $newAgent) {
+                $title = "Transferred from {$previousAgent} to {$newAgent}";
+            } elseif ($newAgent) {
+                $title = "Assigned to {$newAgent}";
+            } elseif ($previousAgent) {
+                $title = "Unassigned from {$previousAgent}";
+            } else {
+                $title = "Agent assignment updated";
+            }
+
+            \App\Models\EnquiryInteraction::create([
+                'enquiry_id' => $enquiry->id,
+                'type' => 'agent_assignment',
+                'agent_id' => $request->user()->id, // the user performing the action
+                'title' => $title,
+                'description' => 'Agent assignment updated',
+                'metadata' => [
+                    'previousAgentId' => $previousAgentId,
+                    'newAgentId' => $newAgentId,
+                    'reqestedBy' => $request->user()->id
+                ],
+            ]);
+        }
 
         $enquiry->update([
             'customer_name' => $data['customerName'] ?? $enquiry->customer_name,
@@ -91,6 +133,7 @@ class EnquiryController extends Controller
             'status' => $data['status'] ?? $enquiry->status,
             'notes' => $data['notes'] ?? $enquiry->notes,
         ]);
+
 
         return response()->json($enquiry);
     }

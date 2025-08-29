@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('enquiry_interactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('enquiry_id')->constrained()->cascadeOnDelete();
-            $table->enum('type', ['status_change','call','note','email','meeting','quote_sent','payment_received']);
+            $table->enum('type', ['status_change','call','note','email','meeting','quote_sent','payment_received','agent_assignment']);
             $table->foreignId('agent_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('title');
             $table->text('description')->nullable();

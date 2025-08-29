@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Api\CallController;
 use App\Http\Controllers\Api\EnquiryController;
+use App\Http\Controllers\Api\InteractionController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use Illuminate\Http\Request;
@@ -23,6 +24,9 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/enquiries', [EnquiryController::class, 'store']);
      Route::patch('/enquiries/{id}', [EnquiryController::class, 'update']);
      Route::delete('/enquiries/{id}', [EnquiryController::class, 'destroy']);
+
+     Route::get('/enquiries/{id}/interactions', [InteractionController::class, 'index']);
+
  
      // Agents
      Route::get('/agents', [AgentController::class, 'index']);
