@@ -10,14 +10,23 @@ class Enquiry extends Model
     /** @use HasFactory<\Database\Factories\EnquiryFactory> */
     use HasFactory;
     protected $fillable = [
-        'customer_name','email','phone','source','utm_data',
-        'assigned_agent','status','notes','last_contact_at',
-        'next_follow_up_at','created_by'
+        'customer_name',
+        'email',
+        'phone',
+        'source',
+        'utm_data',
+        'assigned_agent',
+        'status',
+        'notes',
+        'created_by'
     ];
 
     protected $casts = [
         'utm_data' => 'array',
+        'created_at' => 'datetime:c',
+        'updated_at' => 'datetime:c',
     ];
+    
 
     public function interactions()
     {
